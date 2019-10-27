@@ -53,6 +53,7 @@ int main(int argc, char *argv[]) {
   ssize_t len;
   size_t sofar;
 
+  int actual_reads = 0;
   int yes = 1;
   int ret;
   struct sockaddr_storage their_addr;
@@ -127,6 +128,7 @@ int main(int argc, char *argv[]) {
           return 1;
         }
         sofar += len;
+        actual_reads += 1;
       }
 
       if (write(new_fd, buf, size) != size) {
@@ -148,6 +150,8 @@ int main(int argc, char *argv[]) {
       perror("connect");
       return 1;
     }
+    
+    sleep(1);
 
 #ifdef HAS_CLOCK_GETTIME_MONOTONIC
     if (clock_gettime(CLOCK_MONOTONIC, &start) == -1) {
@@ -175,6 +179,7 @@ int main(int argc, char *argv[]) {
           return 1;
         }
         sofar += len;
+        actual_reads += 1;
       }
     }
 
@@ -199,6 +204,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     printf("average latency: %li ns\n", delta / (count * 2));
+    printf("actual reads: %i \n", actual_reads);
   }
 
   return 0;

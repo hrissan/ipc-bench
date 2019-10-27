@@ -101,19 +101,29 @@ int main(int argc, char *argv[]) {
   gettimeofday(&start, NULL);
 
   for (i = 0; i < count; i++) {
+  
+  	sleep(1);
 
+	  struct timeval tp1;
+	  gettimeofday(&tp1, NULL);
+	     printf("write at: %3li:%6li ns\n", (long)(tp1.tv_sec % 1000), (long)tp1.tv_usec);
     if (write(sockfd, buf, size) != size) {
       perror("write");
       return 1;
     }
 
     for (sofar = 0; sofar < size;) {
+	  struct timeval tp2;
       len = read(sockfd, buf, size - sofar);
       if (len == -1) {
         perror("read");
         return 1;
       }
       sofar += len;
+	  gettimeofday(&tp2, NULL);
+	  delta =
+    	  (tp2.tv_sec - tp1.tv_sec) * 1000000 + (tp2.tv_usec - tp1.tv_usec);
+	     printf("read at: %3li:%6li, %li mks\n", (long)(tp2.tv_sec % 1000), (long)tp2.tv_usec, (long)delta);
     }
   }
 

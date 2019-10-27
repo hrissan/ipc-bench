@@ -39,7 +39,7 @@
 int main(int argc, char *argv[]) {
   int size;
   char *buf;
-  int64_t count, i;
+  int64_t i;
 
   ssize_t len;
   size_t sofar;
@@ -52,14 +52,12 @@ int main(int argc, char *argv[]) {
   struct addrinfo *res;
   int sockfd, new_fd;
 
-  if (argc != 5) {
-    printf("usage: tcp_local_lat <bind-to> <port> <message-size> "
-           "<roundtrip-count>\n");
+  if (argc != 4) {
+    printf("usage: tcp_local_lat <bind-to> <port> <message-size>\n");
     return 1;
   }
 
   size = atoi(argv[3]);
-  count = atol(argv[4]);
 
   buf = malloc(size);
   if (buf == NULL) {
@@ -68,7 +66,7 @@ int main(int argc, char *argv[]) {
   }
 
   printf("message size: %i octets\n", size);
-  printf("roundtrip count: %li\n", count);
+//   printf("roundtrip count: %li\n", count);
 
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_UNSPEC; // use IPv4 or IPv6, whichever
@@ -108,15 +106,21 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  for (i = 0; i < count; i++) {
+  while (1) {
 
     for (sofar = 0; sofar < size;) {
+	  struct timeval tp;
       len = read(new_fd, buf, size - sofar);
       if (len == -1) {
         perror("read");
         return 1;
       }
+      if (len == 0)
+      	break;
       sofar += len;
+	  gettimeofday(&tp, NULL);
+	     printf("read at: %3li:%6li\n", (long)(tp.tv_sec % 1000), (long)tp.tv_usec);
+
     }
 
     if (write(new_fd, buf, size) != size) {
