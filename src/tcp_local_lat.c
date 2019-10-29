@@ -35,6 +35,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
+#include <netinet/tcp.h>
 
 int main(int argc, char *argv[]) {
   int size;
@@ -103,6 +104,12 @@ int main(int argc, char *argv[]) {
   if ((new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size)) ==
       -1) {
     perror("accept");
+    return 1;
+  }
+
+	int set                              = 1;	
+  if (setsockopt(new_fd, IPPROTO_TCP, TCP_NODELAY, &set, sizeof(set)) < 0) {
+    perror("nodelay");
     return 1;
   }
 

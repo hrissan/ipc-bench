@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(ipc-bench C)
 
-add_compile_options(-Wall -Wextra -Wpedantic)
+add_compile_options(-O3 -Wall -Wextra -Wpedantic)
 
 add_executable(pipe_lat src/pipe_lat.c)
 add_executable(pipe_thr src/pipe_thr.c)
