@@ -32,19 +32,33 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/errno.h>
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 #include <netinet/tcp.h>
+#include <fcntl.h>
+
+
+int set_nonblocking(int fd) {
+	int flags = fcntl(fd, F_GETFL, 0);
+	if (flags < 0) {   
+	    perror("fcntl 1");
+        return 0;
+    }
+	flags |= O_NONBLOCK;
+	if (fcntl(fd, F_SETFL, flags) < 0) {   
+	    perror("fcntl 2");
+        return 0;
+    }
+    return 1;
+}
 
 int main(int argc, char *argv[]) {
   int size;
   char *buf;
   int64_t count, i, delta;
   struct timeval start, stop;
-
-  ssize_t len;
-  size_t sofar;
 
   int ret;
   struct addrinfo hints;
@@ -84,6 +98,13 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  int set                              = 1;	
+  if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &set, sizeof(set)) < 0) {
+    perror("nodelay");
+    return 1;
+  }
+
+
   if (bind(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
     perror("bind");
     return 1;
@@ -94,16 +115,20 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (connect(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
-    perror("connect");
+  if (!set_nonblocking(sockfd)) {
     return 1;
   }
 
-	int set                              = 1;	
-  if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &set, sizeof(set)) < 0) {
-    perror("nodelay");
-    return 1;
+  if (connect(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
+		int err = errno;
+		if (err != EINPROGRESS) {  // some REAL error
+		    perror("connect");
+	        return 1;
+	    }
+	    printf("connect EAGAIN\n");
   }
+
+  	sleep(1);
 
   gettimeofday(&start, NULL);
 
@@ -119,13 +144,21 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    for (sofar = 0; sofar < size;) {
+    size_t sofar = 0;
+
+    while (sofar < size) {
 	  struct timeval tp2;
-      len = read(sockfd, buf, size - sofar);
+      ssize_t len = recv(sockfd, buf + sofar, size - sofar, MSG_DONTWAIT);
       if (len == -1) {
-        perror("read");
-        return 1;
+		int err = errno;
+		if (err != EAGAIN && err != EWOULDBLOCK) {  // some REAL error
+	        perror("read");
+	        return 1;
+	    }
+        continue;
       }
+      if (len == 0)
+      	break;
       sofar += len;
 	  gettimeofday(&tp2, NULL);
 	  delta =

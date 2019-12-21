@@ -32,18 +32,30 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/errno.h>
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 #include <netinet/tcp.h>
+#include <fcntl.h>
+
+int set_nonblocking(int fd) {
+	int flags = fcntl(fd, F_GETFL, 0);
+	if (flags < 0) {   
+	    perror("fcntl 1");
+        return 0;
+    }
+	flags |= O_NONBLOCK;
+	if (fcntl(fd, F_SETFL, flags) < 0) {   
+	    perror("fcntl 2");
+        return 0;
+    }
+    return 1;
+}
 
 int main(int argc, char *argv[]) {
-  int size;
+  size_t size;
   char *buf;
-  int64_t i;
-
-  ssize_t len;
-  size_t sofar;
 
   int yes = 1;
   int ret;
@@ -107,20 +119,28 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-	int set                              = 1;	
+	int set = 1;	
   if (setsockopt(new_fd, IPPROTO_TCP, TCP_NODELAY, &set, sizeof(set)) < 0) {
     perror("nodelay");
     return 1;
   }
+  if (!set_nonblocking(new_fd)) {
+    return 1;
+  }
 
   while (1) {
+    size_t sofar = 0;
 
-    for (sofar = 0; sofar < size;) {
+    while (sofar < size) {
 	  struct timeval tp;
-      len = read(new_fd, buf, size - sofar);
+      ssize_t len = recv(new_fd, buf + sofar, size - sofar, MSG_DONTWAIT);
       if (len == -1) {
-        perror("read");
-        return 1;
+		int err = errno;
+		if (err != EAGAIN && err != EWOULDBLOCK) {  // some REAL error
+	        perror("read");
+	        return 1;
+	    }
+        continue;
       }
       if (len == 0)
       	break;
