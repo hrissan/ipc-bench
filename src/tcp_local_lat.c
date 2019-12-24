@@ -39,6 +39,12 @@
 #include <netinet/tcp.h>
 #include <fcntl.h>
 
+#define TCP_LAT_USING_EPOLL 0
+
+#if TCP_LAT_USING_EPOLL
+#include <sys/epoll.h>
+#endif
+
 int set_nonblocking(int fd) {
 	int flags = fcntl(fd, F_GETFL, 0);
 	if (flags < 0) {   
@@ -128,11 +134,39 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+#if TCP_LAT_USING_EPOLL
+  int efd = epoll_create1(0);
+  if (efd < 0) {
+      perror("epoll_create1");
+    return 1;
+  }
+  struct epoll_event event = {EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET, {.ptr = 0}};
+  if (epoll_ctl(efd, EPOLL_CTL_ADD, new_fd, &event) < 0) {
+      perror("epoll_ctl");
+      return 1;
+  }
+#endif
   while (1) {
     size_t sofar = 0;
 
     while (sofar < size) {
 	  struct timeval tp;
+#if TCP_LAT_USING_EPOLL
+      struct epoll_event events[1];
+    //printf("Before epoll_wait\n");
+        int n = epoll_wait(efd, events, 1, 0);
+        if (n < 0) {
+            n = errno;
+            if (n != EINTR) {
+                perror("epoll_wait");
+                return 1;
+            }
+            continue;
+        }
+        if (n == 0)
+            continue; // busy polling
+//        printf("Before recv\n");
+#endif
       ssize_t len = recv(new_fd, buf + sofar, size - sofar, MSG_DONTWAIT);
       if (len == -1) {
 		int err = errno;
