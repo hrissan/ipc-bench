@@ -138,7 +138,6 @@ int main(int argc, char *argv[]) {
 
 	  struct timeval tp1;
 	  gettimeofday(&tp1, NULL);
-	     printf("write at: %3li:%6li ns\n", (long)(tp1.tv_sec % 1000), (long)tp1.tv_usec);
     if (write(sockfd, buf, size) != size) {
       perror("write");
       return 1;
@@ -163,7 +162,8 @@ int main(int argc, char *argv[]) {
 	  gettimeofday(&tp2, NULL);
 	  delta =
     	  (tp2.tv_sec - tp1.tv_sec) * 1000000 + (tp2.tv_usec - tp1.tv_usec);
-	     printf("read at: %3li:%6li, %li mks\n", (long)(tp2.tv_sec % 1000), (long)tp2.tv_usec, (long)delta);
+        printf("write at: %3li:%6li ns\n", (long)(tp1.tv_sec % 1000), (long)tp1.tv_usec);
+         printf("read at: %3li:%6li, %li mks\n", (long)(tp2.tv_sec % 1000), (long)tp2.tv_usec, (long)delta);
     }
   }
 
