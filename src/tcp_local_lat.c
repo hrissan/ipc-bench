@@ -59,6 +59,13 @@ int set_nonblocking(int fd) {
     return 1;
 }
 
+void set_quickack(int fd) {
+    int zero = 0;
+    if (setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, &zero, sizeof(zero)) < 0) {
+        perror("TCP_QUICKACK");
+    }
+}
+
 int process_message(int new_fd, int efd, int message_size, int polling) {
     char buf[message_size];
     int sofar = 0;
@@ -95,11 +102,7 @@ int process_message(int new_fd, int efd, int message_size, int polling) {
             printf("disconnect'n");
             return 0; // disconnect
         }
-        int zero = 0;
-        if (setsockopt(new_fd, IPPROTO_TCP, TCP_QUICKACK, &zero, sizeof(zero)) < 0 ){
-            perror("TCP_QUICKACK");
-            return 0;
-        }
+        set_quickack(new_fd);
         sofar += len;
 //        if (chunks == 0) {
 //            gettimeofday(&tp, NULL);
@@ -140,6 +143,7 @@ void socket_accepted(int new_fd, int message_size, int polling) {
       return;
   }
 #endif
+    set_quickack(new_fd);
   while (process_message(new_fd, efd, message_size, polling))
       ;
 }

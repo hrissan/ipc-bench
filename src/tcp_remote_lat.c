@@ -54,6 +54,13 @@ int set_nonblocking(int fd) {
     return 1;
 }
 
+void set_quickack(int fd) {
+    int zero = 0;
+    if (setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, &zero, sizeof(zero)) < 0) {
+        perror("TCP_QUICKACK");
+    }
+}
+
 int main(int argc, char *argv[]) {
   int size;
   char *buf;
@@ -121,7 +128,7 @@ int main(int argc, char *argv[]) {
           return 1;
       }
   }
-
+  set_quickack(sockfd);
   if (connect(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
 		int err = errno;
 		if (err != EINPROGRESS) {  // some REAL error
@@ -135,6 +142,7 @@ int main(int argc, char *argv[]) {
 
   gettimeofday(&start, NULL);
 
+    set_quickack(sockfd);
   long mksecs[count];
   for (i = 0; i < count; i++) {
   
@@ -162,11 +170,7 @@ int main(int argc, char *argv[]) {
       }
       if (len == 0)
       	break;
-        int zero = 0;
-        if (setsockopt(sockfd, IPPROTO_TCP, TCP_QUICKACK, &zero, sizeof(zero)) < 0 ){
-            perror("TCP_QUICKACK");
-            return 0;
-        }
+      set_quickack(sockfd);
       sofar += len;
     }
       gettimeofday(&tp2, NULL);
