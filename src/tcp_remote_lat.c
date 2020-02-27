@@ -98,26 +98,26 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  int set                              = 1;	
-  if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &set, sizeof(set)) < 0) {
-    perror("nodelay");
-    return 1;
-  }
+//  int set                              = 1;
+//  if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &set, sizeof(set)) < 0) {
+//    perror("nodelay");
+//    return 1;
+//  }
 
 
-  if (bind(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
-    perror("bind");
-    return 1;
-  }
+//if (bind(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
+//    perror("bind");
+//    return 1;
+//  }
 
   if ((ret = getaddrinfo(argv[2], argv[3], &hints, &res)) != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret));
     return 1;
   }
 
-  if (!set_nonblocking(sockfd)) {
-    return 1;
-  }
+//  if (!set_nonblocking(sockfd)) {
+//    return 1;
+//  }
 
   if (connect(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
 		int err = errno;
@@ -169,10 +169,10 @@ int main(int argc, char *argv[]) {
 
   gettimeofday(&stop, NULL);
 
-  delta =
-      (stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_usec - start.tv_usec) * 1000;
+//  delta =
+//      (stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_usec - start.tv_usec) * 1000;
 
-  printf("average latency: %li ns\n", delta / (count * 2));
+//  printf("average latency: %li ns\n", delta / (count * 2));
 
   return 0;
 }

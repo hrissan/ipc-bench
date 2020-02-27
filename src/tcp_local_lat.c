@@ -130,9 +130,9 @@ int main(int argc, char *argv[]) {
     perror("nodelay");
     return 1;
   }
-  if (!set_nonblocking(new_fd)) {
-    return 1;
-  }
+//  if (!set_nonblocking(new_fd)) {
+//    return 1;
+//  }
 
 #if TCP_LAT_USING_EPOLL
   int efd = epoll_create1(0);
