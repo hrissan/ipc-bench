@@ -95,6 +95,11 @@ int process_message(int new_fd, int efd, int message_size, int polling) {
             printf("disconnect'n");
             return 0; // disconnect
         }
+        int zero = 0;
+        if (setsockopt(new_fd, IPPROTO_TCP, TCP_QUICKACK, &zero, sizeof(zero)) < 0 ){
+            perror("TCP_QUICKACK");
+            return 0;
+        }
         sofar += len;
 //        if (chunks == 0) {
 //            gettimeofday(&tp, NULL);

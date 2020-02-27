@@ -65,14 +65,15 @@ int main(int argc, char *argv[]) {
   struct addrinfo *res;
   int sockfd;
 
-  if (argc != 6) {
-    printf("usage: tcp_lat <bind-to> <host> <port> <message-size> "
-           "<roundtrip-count>\n");
+  if (argc != 7) {
+    printf("usage: tcp_lat <bind-to> <host> <port> <message-size>"
+           "<roundtrip-count> <polling>\n");
     return 1;
   }
 
   size = atoi(argv[4]);
   count = atol(argv[5]);
+  int polling = atol(argv[6]);
 
   buf = malloc(size);
   if (buf == NULL) {
@@ -115,9 +116,11 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-//  if (!set_nonblocking(sockfd)) {
-//    return 1;
-//  }
+  if (polling){
+      if (!set_nonblocking(sockfd)) {
+          return 1;
+      }
+  }
 
   if (connect(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
 		int err = errno;
@@ -132,11 +135,13 @@ int main(int argc, char *argv[]) {
 
   gettimeofday(&start, NULL);
 
+  long mksecs[count];
   for (i = 0; i < count; i++) {
   
-  	sleep(1);
+//  	sleep(1);
 
 	  struct timeval tp1;
+      struct timeval tp2;
 	  gettimeofday(&tp1, NULL);
     if (write(sockfd, buf, size) != size) {
       perror("write");
@@ -146,8 +151,7 @@ int main(int argc, char *argv[]) {
     size_t sofar = 0;
 
     while (sofar < size) {
-	  struct timeval tp2;
-      ssize_t len = recv(sockfd, buf + sofar, size - sofar, MSG_DONTWAIT);
+      ssize_t len = recv(sockfd, buf + sofar, size - sofar, polling ? MSG_DONTWAIT : 0);
       if (len == -1) {
 		int err = errno;
 		if (err != EAGAIN && err != EWOULDBLOCK) {  // some REAL error
@@ -158,16 +162,26 @@ int main(int argc, char *argv[]) {
       }
       if (len == 0)
       	break;
+        int zero = 0;
+        if (setsockopt(sockfd, IPPROTO_TCP, TCP_QUICKACK, &zero, sizeof(zero)) < 0 ){
+            perror("TCP_QUICKACK");
+            return 0;
+        }
       sofar += len;
-	  gettimeofday(&tp2, NULL);
-	  delta =
-    	  (tp2.tv_sec - tp1.tv_sec) * 1000000 + (tp2.tv_usec - tp1.tv_usec);
-        printf("write at: %3li:%6li ns\n", (long)(tp1.tv_sec % 1000), (long)tp1.tv_usec);
-         printf("read at: %3li:%6li, %li mks\n", (long)(tp2.tv_sec % 1000), (long)tp2.tv_usec, (long)delta);
     }
+      gettimeofday(&tp2, NULL);
+      delta =
+              (tp2.tv_sec - tp1.tv_sec) * 1000000 + (tp2.tv_usec - tp1.tv_usec);
+//      printf("write at: %3li:%6li ns\n", (long)(tp1.tv_sec % 1000), (long)tp1.tv_usec);
+//      printf("read at: %3li:%6li, %li mks\n", (long)(tp2.tv_sec % 1000), (long)tp2.tv_usec, (long)delta);
+
+      mksecs[i] = delta;
   }
 
-  gettimeofday(&stop, NULL);
+    for (i = 0; i < count; i++) {
+        printf("latency: %li mks\n", mksecs[i]);
+    }
+//  gettimeofday(&stop, NULL);
 
 //  delta =
 //      (stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_usec - start.tv_usec) * 1000;
